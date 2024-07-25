@@ -4,6 +4,7 @@ import readline from "readline";
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
+  terminal: true,
 });
 
 async function startWordChainFinder() {
@@ -11,22 +12,36 @@ async function startWordChainFinder() {
     "Welcome to the Word Chain Finder! Press ESC at any time to exit.\n"
   );
 
-  while (true) {
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+
+  let endProgram = false;
+
+  process.stdin.on("data", (key) => {
+    if (key.toString() === "\u001b") {
+      endProgram = true;
+      console.log("\nESC key pressed. Exiting...");
+      rl.close();
+      process.exit();
+    }
+  });
+
+  while (!endProgram) {
     const startWord = await askQuestion("Enter the starting word: ");
-    if (startWord === null) break; // User pressed ESC
+    if (startWord === null) break;
 
     const endWord = await askQuestion("Enter the ending word: ");
-    if (endWord === null) break; // User pressed ESC
+    if (endWord === null) break;
 
     let strictMode;
     if (startWord.length === endWord.length) {
       const answer = await askQuestion(
         "Do you want to disable strict mode? (y/n): "
       );
-      if (answer === null) break; // User pressed ESC
+      if (answer === null) break;
       strictMode = answer.trim().toLowerCase().startsWith("n");
     } else {
-      strictMode = false; // Default strict mode if word lengths differ
+      strictMode = false;
     }
 
     const result = await findShortestWordChain(startWord, endWord, {
@@ -41,14 +56,14 @@ async function startWordChainFinder() {
   }
 
   console.log("Goodbye!");
-  rl.close();
+  process.stdin.setRawMode(false);
 }
 
 function askQuestion(question) {
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
       if (answer.trim() === "") {
-        resolve(null); // User pressed ESC or entered an empty string
+        resolve(null);
       } else {
         resolve(answer.trim());
       }
@@ -56,5 +71,4 @@ function askQuestion(question) {
   });
 }
 
-// Start the interactive word chain finder
 startWordChainFinder();
